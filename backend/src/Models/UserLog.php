@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use App\Config\Database;
+
+final class UserLog
+{
+    public static function log(
+        string $userId,
+        ?string $accountNo,
+        string $updatedByType,
+        string $updatedById,
+        string $action
+    ): void {
+        $stmt = Database::getConnection()->prepare(
+            'INSERT INTO user_log (user_id, account_no, updated_by_type, updated_by_id, action_desc, logged_at)
+             VALUES (?, ?, ?, ?, ?, NOW())'
+        );
+        $stmt->execute([$userId, $accountNo, $updatedByType, $updatedById, $action]);
+    }
+
+    public static function getLogs(string $userId, int $limit = 100, int $offset = 0): array
+    {
+        $limit = max(1, min($limit, 500));
+        $offset = max(0, $offset);
+
+        $stmt = Database::getConnection()->prepare(
+            "SELECT * FROM user_log
+             WHERE user_id = ?
+             ORDER BY logged_at DESC
+             LIMIT {$limit} OFFSET {$offset}"
+        );
+        $stmt->execute([$userId]);
+
+        return $stmt->fetchAll();
+    }
+}
